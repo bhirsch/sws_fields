@@ -1,0 +1,323 @@
+<?php
+/**
+ * @file
+ *   Generate SWS Site Management block.`
+ */
+ 
+/**
+ * Implementation of hook_help()
+ */
+function sws_mgmt_help($path, $arg) {
+  if ($path == 'admin/help#sws_mgmt') {
+    $txt = 'Generate "Site Management" block for Admin toolbar.';
+    $output = t($txt);
+    return $output;
+  }
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function sws_mgmt_menu() {
+  $items = array();
+  // note: we can't dynamically append destination to querystring.
+  // Devel module handles this at theme layer.
+  $items['sws/clearcache'] = array(
+    'title' => 'Empty cache',
+    'page callback' => 'sws_mgmt_empty_cache',
+    'description' => t('Clear the CSS cache and all database cache '
+                    .'tables which store page, node, theme '
+                    .'and variable caches.'),
+    'access arguments' => array('clear cache'),
+    'menu_name' => t('Site Management'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_menu_alter().
+ */
+function sws_mgmt_menu_alter(&$items) {
+  // Call back to show limited menu overview to Site Managers.
+  $items['admin/build/menu']['page callback'] = 'sws_mgmt_menu_overview_page';
+  // Prevent site managers from  adding menus and changing settings.
+  $items['admin/build/menu/add']['access callback'] = 'sws_mgmt_restricted_menu_access';
+  $items['admin/build/menu/settings']['access callback'] = 'sws_mgmt_restricted_menu_access';
+ 
+  return $items;
+}
+
+/**
+ * Implementation of hook_form_alter()
+ */
+function sws_mgmt_form_alter(&$form, $form_state, $form_id) {
+  // Set limited menu options admin/build/menu-customize/%/add pages 
+  if ($form_id == 'menu_edit_item') {
+    $options = $form['menu']['parent']['#options'];
+    $limited_options = array();
+    foreach ($options as $key => $value) {
+      // Main Menu (Features menu), only allow <Main Menu> parent 
+      if (arg(3) == 'features' && $value == '<Main Menu>') {
+        $limited_options[$key] = $value;
+      }   
+      // Secondary Menu (Secondary Links menu), only allow <Secondary Menu> parent 
+      if (arg(3) == 'secondary-links' && $value == '<Secondary Menu>') {
+        $limited_options[$key] = $value;
+      }   
+    }   
+    $form['menu']['parent']['#options'] = $limited_options;
+  }
+}
+
+/**
+ * Limit Site Manager's "administer menu" permissions.
+ */
+function sws_mgmt_restricted_menu_access() {
+  global $user;
+  // site manager
+  if ($user->roles[4]) {
+    return FALSE;
+  } 
+  // otherwise check for administer menu perms
+  else {
+    return user_access('administer menu');
+  } 
+}
+
+/**
+ * Display a simplified menu overview page to Site Managers.
+ */
+function sws_mgmt_menu_overview_page() {
+  global $user;
+  // If user is Site Manager (rid 4), display simplified menu overview page
+  if ($user->roles[4]) {
+    $result = db_query("SELECT * FROM {menu_custom} "
+                      ."WHERE menu_name = 'features' OR menu_name = 'secondary-links' "
+                      ."ORDER BY title");
+    $content = array();
+    while ($menu = db_fetch_array($result)) {
+      $menu['href'] = 'admin/build/menu-customize/'. $menu['menu_name'];
+      $menu['localized_options'] = array();
+      $menu['description'] = filter_xss_admin($menu['description']);
+      $content[] = $menu;
+    }
+    return theme('admin_block_content', $content);
+  }
+  // Otherwise, use menu.module's normal callback 
+  else {
+    return menu_overview_page();
+  }
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function sws_mgmt_perm() {
+  return array('clear cache', 'manage content');
+}
+
+/**
+ * Callback for /clearcache.
+ */
+function sws_mgmt_empty_cache() {
+  drupal_flush_all_caches();
+    
+  drupal_set_message('Cache cleared.');
+  
+  drupal_goto();
+}   
+  
+
+/**
+ * Implementation of hook_block().
+ */
+function sws_mgmt_block($op = 'list', $delta = 0, $edit = array()) {
+  if ($op == 'list') {
+    $blocks[0]['info'] = t('SWS Site Management');
+    $blocks[0]['admin'] = TRUE;
+    $blocks[1]['info'] = t('SWS User');
+    $blocks[1]['admin'] = TRUE;
+    $blocks[2]['info'] = t('SWS Set-Up');
+    $blocks[2]['admin'] = TRUE;
+
+    return $blocks;
+  } else if ($op == 'view') {
+    // Add CSS
+    $path = drupal_get_path('module', 'sws_mgmt');
+    drupal_add_css("$path/sws_mgmt.css");
+    //  Switch blocks
+    switch($delta) {
+        case 0:
+          $items = sws_mgmt_content('site management');
+          $subject = t('Site Management');
+          $block['subject'] = $subject;
+          $block['content'] = theme('sws_mgmt_block', $items);
+        break;
+
+        case 1:
+          global $user;
+          $subject = t($user->name);
+          // Add $subject and $content to $block array
+          $block['subject'] = $subject;
+          $block['content'] = theme('sws_mgmt_user_block', $user);
+        break;
+
+        case 2:
+          $items = sws_mgmt_content('site set up');
+          $subject = t('Site Set-Up');
+          $block['subject'] = $subject;
+          $block['content'] = theme('sws_mgmt_block', $items);
+        break;
+
+    }
+  return $block;
+  }
+}
+
+/**
+ *  Implementation of hook_theme().
+ */
+function sws_mgmt_theme() {
+  return array(
+    'sws_mgmt_block' => array(
+      'arguments' => array('items' => NULL),
+    ),
+    'sws_mgmt_user_block' => array(
+      'arguments' => array('user' => NULL),
+    ),
+  );
+}
+
+/**
+ * Theme callback for hook_theme() 'sws_mgmt_block'
+ * 
+ * note: .menu and .leaf are standard admin 
+ * toolbar classes
+ * 
+ * @param
+ *  $items, array( 
+ *    0 => array(
+ *      'perm' => required permission,
+ *      'path' => path of link,
+ *      'txt' => text for link
+ *    ),
+ *  );
+ * 
+ * @return
+ *  $output, html
+ */
+function theme_sws_mgmt_block($items) {
+  // @todo Should these items be real menu 
+  // items for any reason?
+  $output = '';
+  $output.= '<ul class="menu">';
+
+  foreach($items as $item) {
+    $perm = $item['perm'];
+    $txt = $item['txt'];
+    $path = $item['path'];
+    if (user_access($perm)) {
+      $link = l($txt, $path);
+      $output .= '<li class="leaf">'. $link .'</li>';
+    }
+  }
+
+  $output .= '</ul>';
+  
+  return $output;
+}
+
+
+/**
+ * @param
+ *  $block_name, string indicating which block is being built.
+ * 
+ * @return
+ *  $items, array of menu items for Admin Toolbar to pass to theme function
+ *  $items = array(0 => array('perm' => x, 'path' => y, 'txt' => z));
+ */
+function sws_mgmt_content($block_name) {
+  $items = array();
+  switch ($block_name) {
+
+  // site management
+  case 'site management': 
+    $items[0]['perm'] = 'manage content';
+    $items[0]['txt'] = t('Manage Content');
+    $items[0]['path'] = 'admin/content/manage';
+
+    $items[1]['perm'] = 'administer users';
+    $items[1]['txt'] = t('Manage Users');
+    $items[1]['path'] = 'admin/user/user';
+
+    $items[2]['perm'] = 'administer taxonomy';
+    $items[2]['txt'] = t('Taxonomy Manager');
+    $items[2]['path'] = 'admin/content/taxonomy_manager';
+
+    $items[3]['perm'] = 'clear cache';
+    $items[3]['txt'] =  t('Empty Cache'); 
+    $items[3]['path'] = 'sws/clearcache';
+  break;
+
+  // site set up
+  case 'site set up': 
+    $items[0]['perm'] = 'administer site configuration';
+    $items[0]['txt'] = t('Site Maintenance');
+    $items[0]['path'] = 'admin/settings/site-maintenance';
+
+    $items[1]['perm'] = 'manage subtheme';
+    $items[1]['txt'] = t('Subtheme (Graphic Design)');
+    $items[1]['path'] = 'admin/subtheme';
+
+    $items[2]['perm'] = 'administer sws';
+    $items[2]['txt'] = t('Header/Footer Settings');
+    $items[2]['path'] = 'admin/settings/starswithstripes';
+
+    $items[3]['perm'] = 'administer site-wide contact form';
+    $items[3]['txt'] = t('Contact Settings');
+    $items[3]['path'] = 'admin/build/contact/settings';
+
+    $items[4]['perm'] = 'administer menu';
+    $items[4]['txt'] = t('Menu');
+    $items[4]['path'] = 'admin/build/menu';
+
+    $items[5]['perm'] = 'manage features';
+    $items[5]['txt'] = t('Manage Features');
+    $items[5]['path'] = 'admin/build/features';
+
+    $items[6]['perm'] = 'administer google analytics';
+    $items[6]['txt'] = t('Google Analytics');
+    $items[6]['path'] = 'admin/settings/googleanalytics';
+  break;
+  }
+  return $items;
+// */
+}
+
+/**
+ * Theme callback for hook_theme() 'sws_mgmt_user_block'.
+ * 
+ * @param: $user
+ *   $user object 
+ */
+function theme_sws_mgmt_user_block($user) {
+  // Build output
+  // .menu and .leaf are standard admin toolbar classes
+  // @todo Should these items be real menu items for any reason?
+  $output = '';
+  // Unordered list
+  $output.= '<ul class="menu">';
+  // Account
+  $txt = t('Settings');
+  $path = 'user/'. $user->uid .'/edit';
+  $output .= '<li class="leaf">'. l($txt, $path) .'</li>';
+  // Log Out
+  $txt = t('Log Out');
+  $path = 'logout';
+  $output .= '<li class="leaf">'. l($txt, $path) .'</li>';
+  // End list
+  $output .= '</ul>';
+  
+  return $output;
+}
