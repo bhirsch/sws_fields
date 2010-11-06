@@ -1,0 +1,6 @@
+; $Id $
+name = SWS Fields 
+description = Theme CCK fields used by several Stars with Stripes features modules (node-types). This includes field_map, field_pic, and field_video_url.
+core = 6.x
+version = "6.x-0.0"
+package = "Stars with Stripes"

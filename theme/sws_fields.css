@@ -1,0 +1,110 @@
+/* $Id$ */
+
+/*
+ *SWS FIELDS STYLES
+ */
+
+/** sws-pic-field **/
+  .pic
+  {
+    padding: 20px;
+  }
+
+  /* pic-$align-$side */
+  .pic-left-left
+  {
+    float: left;
+    clear: left;
+  }
+
+  /* pic-$align-$side */
+  .pic-right-right
+  {
+    float: right;
+    clear: right;
+  }
+
+  /**
+   * TODO: Find a better solution.
+   * 
+   * NOTE: "Alternate" breaks in IE7. All the pictures end 
+   * up overlapping and bunched up at the top of the page 
+   * when there are multiple pics in one post.
+   * 
+   * For now, there's a fix/work around 
+   * included in whitehouse.css in the conditional IE7 style sheet, 
+   * which makes everything set to "alternate" set to 
+   * alight right in IE7. 
+   */
+  /* pic-$align-$side */
+  .pic-alternate-left
+  {
+    float: left;
+    clear: right;
+  }
+
+  /* pic-$align-$side */
+  .pic-alternate-right
+  {
+    float: right;
+    clear: left;
+  }
+
+  .pic-caption 
+  {
+    color: #999;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 1em;
+    line-height: 1.5;
+    margin: 0px;
+  }
+/**************
+  .pic-left
+  {
+    float: left;
+    clear: left;
+  }
+
+  .pic-right
+  {
+    float: right;
+    clear: right;
+  }
+
+  .pic-even
+  {
+    float: left;
+    clear: right;
+  }
+
+  .pic-odd
+  {
+    float: right;
+    clear: left;
+  }
+***************/
+
+/** sws-video-field **/
+  .video
+  {
+    padding-left: 0px;
+    padding-right: 20px;
+    padding-bottom: 20px;
+    padding-top: 10px;
+  }
+ 
+  .video-left 
+  {
+    float: left;
+  }   
+
+  .video-right
+  {
+    float: right;
+  }   
+
+  .video-center 
+  {
+    text-align: center;
+  } 
+
