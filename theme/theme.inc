@@ -117,7 +117,6 @@ function template_preprocess_sws_fields_formatter_sws_pic(&$variables) {
     if ($description) {
       // set width for caption at width of picture.
       $image = image_get_info(imagecache_create_path($preset_namespace, $image_filepath)); 
-dsm($image);
       $width = $image['width'];
       // $height = $image['height'];
       $output .= "<div class='pic-caption' style='max-width:". $width. "px'>". $description ."</div>";
