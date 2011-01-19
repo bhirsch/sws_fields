@@ -131,6 +131,9 @@ function sws_mgmt_empty_cache() {
 
 /**
  * Implementation of hook_block().
+ * 
+ * TODO Depricated. Phase out sws_mgmt_block(). Now fcontrolpanel creates all the admin toolbar blocks. As of civic-1.0-alpha2 nobody shoul be using these anymore.
+ * 
  */
 function sws_mgmt_block($op = 'list', $delta = 0, $edit = array()) {
   if ($op == 'list') {
