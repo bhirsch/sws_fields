@@ -1,0 +1,105 @@
+<?php
+// $Id $
+
+/**
+ * @file
+ * Stars with Stripes core module. 
+ */
+
+// TODO Add help and settings to sws_fields.module.
+
+/**
+ * Implementation of hook_menu().
+ */
+/*
+function sws_fields_menu() {
+  $items = array();
+  $items['admin/settings/sws_fields'] = array(
+    'title' => t('Stars with Stripes: Settings'), 
+    'description' => t('Configure site-wide settings'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sws_fields_admin_settings'),
+    'access arguments' => array('administer sws'), 
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'sws_fields.admin.inc', 
+  );
+  return $items;
+}
+// */
+
+/**
+ * Implementation of hook_nodeapi().
+ * 
+ * TODO Move presave handling of custom teasers here (out of sws.module)
+ */
+/*
+function sws_fields_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  switch($op) {
+    case 'view':
+//dsm($node);
+      break;
+
+  }
+}
+// */ 
+
+/**
+ * hook_field_formatter_info()
+ * 
+ * for theming CCK fields
+ */
+function sws_fields_field_formatter_info() {
+  return array(
+    'sws_map' => array(
+      'label' => 'SWS: Map',
+      'field types' => array('text'),
+    ),
+    'sws_pic' => array(
+      'label' => 'SWS: Picture', 
+      'field types' => array('image', 'filefield'),
+    ),
+    'sws_video' => array(
+      'label' => 'SWS: Video',
+      'field types' => array('text'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function sws_fields_theme() {
+  // Include preprocess functions
+  $path = drupal_get_path('module', 'sws_fields') .'/theme';
+  require_once "./$path/theme.inc";
+  drupal_add_css("./$path/sws_fields.css");
+  // Template file
+  return array(
+    'sws_fields_formatter_sws_map' => array(
+      'template' => 'sws-fields-map-field',
+      'file' => 'theme.inc',
+      'arguments' => array('element' => NULL), 
+      'path' => $path,
+    ), 
+    'sws_fields_formatter_sws_video' => array(
+      'template' => 'sws-fields-video-field',
+      'file' => 'theme.inc',
+      'arguments' => array('element' => NULL), 
+      'path' => $path,
+    ), 
+    'sws_fields_formatter_sws_pic' => array(
+      'template' => 'sws-fields-pic-field',
+      'file' => 'theme.inc',
+      'arguments' => array('element' => NULL), 
+      'path' => $path,
+    ), 
+  );
+}
+
+/**
+ * Implementation of hook_init().
+ */
+function sws_fields_init(){
+  $path = drupal_get_path('module', 'sws_fields') .'/theme';
+  drupal_add_css("./$path/sws_fields.css");
+}
